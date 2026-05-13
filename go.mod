@@ -2,8 +2,6 @@ module kratos_template
 
 go 1.24.0
 
-toolchain go1.24.6
-
 require (
 	github.com/Martindeeepdark/go-common v0.1.0
 	github.com/go-kratos/kratos/v2 v2.9.2

@@ -1,24 +1,26 @@
-FROM golang:1.19 AS builder
-
-COPY . /src
-WORKDIR /src
-
-RUN GOPROXY=https://goproxy.cn make build
-
-FROM debian:stable-slim
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-		ca-certificates  \
-        netbase \
-        && rm -rf /var/lib/apt/lists/ \
-        && apt-get autoremove -y && apt-get autoclean -y
-
-COPY --from=builder /src/bin /app
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-EXPOSE 8000
-EXPOSE 9000
-VOLUME /data/conf
+ENV GOPROXY=https://goproxy.cn,direct
 
-CMD ["./server", "-conf", "/data/conf"]
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o kratos-template ./cmd
+
+
+FROM alpine:latest
+
+RUN apk add --no-cache ca-certificates tzdata
+
+WORKDIR /app
+
+COPY --from=builder /app/kratos-template .
+COPY --from=builder /app/configs ./configs
+
+EXPOSE 8000 9000
+
+ENTRYPOINT ["./kratos-template"]
+CMD ["greeter-service", "--config", "configs/config.yaml"]
