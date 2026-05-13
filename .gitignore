@@ -36,3 +36,6 @@ bin/
 .vscode/
 .idea/
 *.swp
+
+# Docs
+docs/

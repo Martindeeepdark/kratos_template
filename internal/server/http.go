@@ -1,32 +1,30 @@
 package server
 
 import (
+	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	"github.com/go-kratos/kratos/v2/transport/http"
+
 	v1 "kratos_template/api/helloworld/v1"
 	"kratos_template/internal/conf"
 	"kratos_template/internal/service"
-
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-kratos/kratos/v2/middleware/recovery"
-	"github.com/go-kratos/kratos/v2/transport/http"
 )
 
-// NewHTTPServer new an HTTP server.
-func NewHTTPServer(c *conf.Server, greeter *service.GreeterService, logger log.Logger) *http.Server {
+func NewHTTPServer(c *conf.ServerConfig, greeterSvc *service.GreeterService) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
 		),
 	}
-	if c.Http.Network != "" {
-		opts = append(opts, http.Network(c.Http.Network))
+	if c.HTTP.Network != "" {
+		opts = append(opts, http.Network(c.HTTP.Network))
 	}
-	if c.Http.Addr != "" {
-		opts = append(opts, http.Address(c.Http.Addr))
+	if c.HTTP.Addr != "" {
+		opts = append(opts, http.Address(c.HTTP.Addr))
 	}
-	if c.Http.Timeout != nil {
-		opts = append(opts, http.Timeout(c.Http.Timeout.AsDuration()))
+	if c.HTTP.Timeout > 0 {
+		opts = append(opts, http.Timeout(c.HTTP.Timeout))
 	}
 	srv := http.NewServer(opts...)
-	v1.RegisterGreeterHTTPServer(srv, greeter)
+	v1.RegisterGreeterHTTPServer(srv, greeterSvc)
 	return srv
 }

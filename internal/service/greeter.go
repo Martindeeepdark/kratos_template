@@ -3,27 +3,38 @@ package service
 import (
 	"context"
 
+	"github.com/Martindeeepdark/go-common/errorx"
+	"github.com/Martindeeepdark/go-common/logs"
+	"github.com/go-kratos/kratos/v2/errors"
+
 	v1 "kratos_template/api/helloworld/v1"
-	"kratos_template/internal/biz"
+	"kratos_template/internal/application/greeter"
 )
 
-// GreeterService is a greeter service.
 type GreeterService struct {
 	v1.UnimplementedGreeterServer
 
-	uc *biz.GreeterUsecase
+	app *greeter.AppService
 }
 
-// NewGreeterService new a greeter service.
-func NewGreeterService(uc *biz.GreeterUsecase) *GreeterService {
-	return &GreeterService{uc: uc}
+func NewGreeterService(app *greeter.AppService) *GreeterService {
+	return &GreeterService{app: app}
 }
 
-// SayHello implements helloworld.GreeterServer.
 func (s *GreeterService) SayHello(ctx context.Context, in *v1.HelloRequest) (*v1.HelloReply, error) {
-	g, err := s.uc.CreateGreeter(ctx, &biz.Greeter{Hello: in.Name})
+	resp, err := s.app.CreateGreeter(ctx, &greeter.CreateGreeterRequest{
+		Hello: in.Name,
+	})
 	if err != nil {
-		return nil, err
+		logs.CtxErrorf(ctx, "SayHello failed: %v", err)
+		return nil, toKratosError(err)
 	}
-	return &v1.HelloReply{Message: "Hello " + g.Hello}, nil
+	return &v1.HelloReply{Message: "Hello " + resp.Hello}, nil
+}
+
+func toKratosError(err error) error {
+	if se, ok := err.(errorx.StatusError); ok {
+		return errors.New(int(se.Code()), "DOMAIN_ERROR", se.Msg())
+	}
+	return errors.InternalServer("INTERNAL_ERROR", err.Error())
 }
